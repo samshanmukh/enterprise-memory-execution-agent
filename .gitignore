@@ -216,3 +216,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+.rocketride/
+
+# App runtime data
+data/
+logs/execution_traces.jsonl
+chroma_data/
+

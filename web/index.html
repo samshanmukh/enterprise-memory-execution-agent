@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Enterprise Memory Execution Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:        #07071a;
+      --surface:   #0d0d28;
+      --card:      rgba(255,255,255,0.035);
+      --card-h:    rgba(255,255,255,0.065);
+      --border:    rgba(255,255,255,0.08);
+      --border-h:  rgba(255,255,255,0.18);
+      --purple:    #7c3aed;
+      --purple-l:  #a855f7;
+      --blue:      #3b82f6;
+      --cyan:      #06b6d4;
+      --green:     #10b981;
+      --amber:     #f59e0b;
+      --pink:      #ec4899;
+      --text:      #f1f5f9;
+      --muted:     #94a3b8;
+      --subtle:    #475569;
+      --radius:    14px;
+      --radius-lg: 22px;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    a { color: inherit; text-decoration: none; }
+
+    /* ── Utilities ── */
+    .container { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
+    .gradient-text {
+      background: linear-gradient(135deg, #a855f7, #3b82f6, #06b6d4);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;
+      border: 1px solid var(--border);
+    }
+    .badge-purple { background: rgba(124,58,237,.15); border-color: rgba(124,58,237,.4); color: #c4b5fd; }
+    .badge-blue   { background: rgba(59,130,246,.15); border-color: rgba(59,130,246,.4); color: #93c5fd; }
+    .badge-green  { background: rgba(16,185,129,.15); border-color: rgba(16,185,129,.4); color: #6ee7b7; }
+    .badge-cyan   { background: rgba(6,182,212,.15);  border-color: rgba(6,182,212,.4);  color: #67e8f9; }
+    .badge-amber  { background: rgba(245,158,11,.15); border-color: rgba(245,158,11,.4); color: #fcd34d; }
+
+    /* ── Nav ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      background: rgba(7,7,26,.7);
+    }
+    .nav-inner {
+      max-width: 1140px; margin: 0 auto; padding: 0 24px;
+      height: 60px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo { font-weight: 800; font-size: 15px; letter-spacing: -0.3px; }
+    .nav-logo span { color: #a855f7; }
+    .nav-links { display: flex; gap: 28px; font-size: 13.5px; color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      background: var(--purple); color: #fff; padding: 7px 18px;
+      border-radius: 8px; font-size: 13px; font-weight: 600;
+      transition: background .2s;
+    }
+    .nav-cta:hover { background: var(--purple-l); }
+
+    /* ── Hero ── */
+    .hero {
+      padding: 140px 0 100px;
+      position: relative; overflow: hidden;
+      text-align: center;
+    }
+    .hero-glow {
+      position: absolute; top: -120px; left: 50%; transform: translateX(-50%);
+      width: 900px; height: 600px; border-radius: 50%;
+      background: radial-gradient(ellipse at center, rgba(124,58,237,.22) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-badge { margin-bottom: 24px; }
+    .hero h1 {
+      font-size: clamp(38px, 6vw, 72px);
+      font-weight: 900; line-height: 1.08; letter-spacing: -2px;
+      margin-bottom: 22px;
+    }
+    .hero-sub {
+      font-size: clamp(16px, 2vw, 20px); color: var(--muted); max-width: 620px;
+      margin: 0 auto 40px; line-height: 1.6;
+    }
+    .hero-btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      padding: 13px 28px; border-radius: 10px; font-weight: 700; font-size: 15px;
+      background: linear-gradient(135deg, #7c3aed, #3b82f6);
+      color: #fff; cursor: pointer; transition: opacity .2s;
+    }
+    .btn-primary:hover { opacity: .85; }
+    .btn-ghost {
+      padding: 13px 28px; border-radius: 10px; font-weight: 600; font-size: 15px;
+      border: 1px solid var(--border-h); color: var(--text);
+      background: var(--card); cursor: pointer; transition: background .2s;
+    }
+    .btn-ghost:hover { background: var(--card-h); }
+    .hero-flow {
+      margin: 70px auto 0; max-width: 860px;
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+      padding: 32px 28px;
+    }
+    .flow-label { font-size: 12px; color: var(--muted); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px; }
+    .flow-prompt {
+      font-family: 'JetBrains Mono', monospace; font-size: 14px;
+      color: #c4b5fd; background: rgba(124,58,237,.1); border: 1px solid rgba(124,58,237,.2);
+      border-radius: 8px; padding: 14px 18px; text-align: left; margin-bottom: 24px;
+    }
+    .flow-arrow { color: var(--muted); font-size: 22px; margin: 12px 0; }
+    .flow-steps { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+    .flow-step {
+      padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      border: 1px solid var(--border);
+    }
+    .step-plan   { background: rgba(245,158,11,.1); border-color: rgba(245,158,11,.3); color: #fcd34d; }
+    .step-mem    { background: rgba(6,182,212,.1);  border-color: rgba(6,182,212,.3);  color: #67e8f9; }
+    .step-res    { background: rgba(59,130,246,.1); border-color: rgba(59,130,246,.3); color: #93c5fd; }
+    .step-crit   { background: rgba(236,72,153,.1); border-color: rgba(236,72,153,.3); color: #f9a8d4; }
+    .step-exec   { background: rgba(124,58,237,.1); border-color: rgba(124,58,237,.3); color: #c4b5fd; }
+    .flow-apps { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 16px; }
+    .app-chip {
+      padding: 6px 14px; border-radius: 6px; font-size: 12.5px; font-weight: 600;
+      background: rgba(16,185,129,.1); border: 1px solid rgba(16,185,129,.25); color: #6ee7b7;
+    }
+
+    /* ── Sections ── */
+    section { padding: 96px 0; }
+    .section-label { font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--purple-l); font-weight: 600; margin-bottom: 12px; }
+    .section-title { font-size: clamp(28px, 4vw, 44px); font-weight: 800; letter-spacing: -1px; margin-bottom: 14px; }
+    .section-sub { font-size: 17px; color: var(--muted); max-width: 580px; }
+    .section-header { margin-bottom: 56px; }
+    .section-header.center { text-align: center; }
+    .section-header.center .section-sub { margin: 0 auto; }
+    .divider { border: none; border-top: 1px solid var(--border); }
+
+    /* ── Problem ── */
+    .problem-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+    .problem-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 28px; transition: border-color .2s;
+    }
+    .problem-card:hover { border-color: var(--border-h); }
+    .problem-icon { font-size: 28px; margin-bottom: 14px; }
+    .problem-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    .problem-card p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+    /* ── Agents ── */
+    .agents-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 18px; }
+    .agent-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 26px 22px; transition: all .2s; position: relative; overflow: hidden;
+    }
+    .agent-card::before {
+      content: ''; position: absolute; inset: 0; opacity: 0;
+      background: linear-gradient(135deg, rgba(124,58,237,.08), rgba(59,130,246,.04));
+      transition: opacity .2s;
+    }
+    .agent-card:hover::before { opacity: 1; }
+    .agent-card:hover { border-color: rgba(124,58,237,.35); transform: translateY(-2px); }
+    .agent-icon { font-size: 32px; margin-bottom: 14px; }
+    .agent-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+    .agent-card p { font-size: 13px; color: var(--muted); line-height: 1.55; margin-bottom: 12px; }
+    .agent-badge { }
+
+    /* ── Apps ── */
+    .apps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
+    .app-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 24px 20px; text-align: center; transition: all .2s;
+    }
+    .app-card:hover { border-color: var(--border-h); transform: translateY(-2px); }
+    .app-logo { font-size: 36px; margin-bottom: 12px; }
+    .app-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .app-card p { font-size: 12.5px; color: var(--muted); }
+    .app-what { margin-top: 10px; font-size: 12px; font-weight: 600; color: #6ee7b7; }
+
+    /* ── Tools ── */
+    .tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
+    .tool-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+      padding: 36px 32px; transition: border-color .2s;
+    }
+    .tool-card:hover { border-color: var(--border-h); }
+    .tool-card.featured { border-color: rgba(124,58,237,.3); background: rgba(124,58,237,.05); }
+    .tool-header { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 20px; }
+    .tool-icon-wrap {
+      width: 52px; height: 52px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center; font-size: 24px;
+      flex-shrink: 0;
+    }
+    .tool-icon-composio { background: rgba(124,58,237,.2); border: 1px solid rgba(124,58,237,.3); }
+    .tool-icon-xtrace   { background: rgba(6,182,212,.2);  border: 1px solid rgba(6,182,212,.3); }
+    .tool-icon-butter   { background: rgba(16,185,129,.2); border: 1px solid rgba(16,185,129,.3); }
+    .tool-header-text h3 { font-size: 19px; font-weight: 800; margin-bottom: 4px; }
+    .tool-header-text p { font-size: 13px; color: var(--muted); }
+    .tool-body { }
+    .tool-body p { font-size: 14px; color: var(--muted); line-height: 1.7; margin-bottom: 20px; }
+    .feature-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .feature-list li {
+      display: flex; align-items: flex-start; gap: 10px;
+      font-size: 13.5px; color: var(--muted);
+    }
+    .feature-list li span.check { color: var(--green); flex-shrink: 0; font-weight: 700; }
+    .feature-list li strong { color: var(--text); }
+
+    /* ── Critic ── */
+    .critic-section { background: var(--surface); }
+    .critic-inner {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center;
+    }
+    @media (max-width: 760px) { .critic-inner { grid-template-columns: 1fr; } }
+    .score-display {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+      padding: 32px; text-align: center;
+    }
+    .score-ring {
+      width: 140px; height: 140px; border-radius: 50%; margin: 0 auto 20px;
+      background: conic-gradient(#7c3aed 88%, rgba(255,255,255,.08) 0);
+      display: flex; align-items: center; justify-content: center; position: relative;
+    }
+    .score-ring::before {
+      content: ''; position: absolute; inset: 12px; border-radius: 50%;
+      background: var(--bg);
+    }
+    .score-value {
+      position: relative; z-index: 1; font-size: 36px; font-weight: 900;
+      background: linear-gradient(135deg, #a855f7, #3b82f6);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .score-label { font-size: 13px; color: var(--muted); font-weight: 600; }
+    .score-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+    .score-item { background: rgba(255,255,255,.04); border-radius: 8px; padding: 12px; }
+    .score-item-label { font-size: 11px; color: var(--subtle); text-transform: uppercase; letter-spacing: .8px; }
+    .score-item-val { font-size: 14px; font-weight: 700; margin-top: 3px; }
+    .val-green { color: #6ee7b7; }
+    .val-blue  { color: #93c5fd; }
+    .critic-text h2 { font-size: 32px; font-weight: 800; letter-spacing: -1px; margin-bottom: 16px; }
+    .critic-text p { font-size: 15px; color: var(--muted); margin-bottom: 14px; line-height: 1.7; }
+    .retry-box {
+      background: rgba(236,72,153,.07); border: 1px solid rgba(236,72,153,.2);
+      border-radius: 10px; padding: 16px 18px; margin-top: 20px;
+    }
+    .retry-box-title { font-size: 13px; font-weight: 700; color: #f9a8d4; margin-bottom: 6px; }
+    .retry-box p { font-size: 13px; color: var(--muted); margin: 0; }
+
+    /* ── Memory ── */
+    .memory-inner {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: start;
+    }
+    @media (max-width: 760px) { .memory-inner { grid-template-columns: 1fr; } }
+    .memory-layers { display: flex; flex-direction: column; gap: 16px; }
+    .memory-layer {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 22px 24px; display: flex; gap: 16px; align-items: flex-start;
+    }
+    .memory-layer-icon {
+      width: 42px; height: 42px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;
+    }
+    .ml-vector { background: rgba(6,182,212,.15); border: 1px solid rgba(6,182,212,.2); }
+    .ml-sql    { background: rgba(59,130,246,.15); border: 1px solid rgba(59,130,246,.2); }
+    .ml-trace  { background: rgba(124,58,237,.15); border: 1px solid rgba(124,58,237,.2); }
+    .memory-layer-body h4 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .memory-layer-body p { font-size: 13px; color: var(--muted); line-height: 1.55; }
+    .memory-text h2 { font-size: 32px; font-weight: 800; letter-spacing: -1px; margin-bottom: 16px; }
+    .memory-text p { font-size: 15px; color: var(--muted); margin-bottom: 16px; line-height: 1.7; }
+    .versioning-demo {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 20px 22px; margin-top: 20px;
+    }
+    .versioning-demo h4 { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 14px; }
+    .version-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .version-row:last-child { border-bottom: none; }
+    .v-run { color: var(--subtle); font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+    .v-conf { font-weight: 700; color: #6ee7b7; }
+
+    /* ── Trace ── */
+    .trace-section { background: var(--surface); }
+    .trace-window {
+      background: #06060f; border: 1px solid var(--border); border-radius: var(--radius-lg);
+      overflow: hidden; max-width: 860px; margin: 0 auto;
+    }
+    .trace-titlebar {
+      background: rgba(255,255,255,.04); border-bottom: 1px solid var(--border);
+      padding: 12px 20px; display: flex; align-items: center; gap: 8px;
+    }
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot-red { background: #ef4444; } .dot-yellow { background: #f59e0b; } .dot-green { background: #10b981; }
+    .trace-titlebar-name { font-size: 13px; color: var(--muted); margin-left: 8px; font-family: 'JetBrains Mono', monospace; }
+    .trace-body { padding: 24px; display: flex; flex-direction: column; gap: 10px; }
+    .trace-entry {
+      display: grid; grid-template-columns: 140px 120px 100px 1fr; gap: 12px;
+      align-items: center; font-size: 12.5px; font-family: 'JetBrains Mono', monospace;
+      padding: 10px 12px; border-radius: 8px; background: rgba(255,255,255,.025);
+      border: 1px solid rgba(255,255,255,.05);
+    }
+    .te-agent { color: #fcd34d; }
+    .te-action { color: #93c5fd; }
+    .te-app { color: #f9a8d4; }
+    .te-status-ok  { color: #6ee7b7; font-weight: 700; }
+    .te-status-sim { color: #93c5fd; font-weight: 700; }
+    .te-dur { color: var(--subtle); }
+
+    /* ── Demo Steps ── */
+    .demo-steps { max-width: 740px; margin: 0 auto; display: flex; flex-direction: column; gap: 0; }
+    .demo-step { display: flex; gap: 24px; }
+    .demo-step-left { display: flex; flex-direction: column; align-items: center; }
+    .step-num {
+      width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--purple), var(--blue));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800; color: #fff;
+    }
+    .step-line { width: 2px; background: var(--border); flex: 1; min-height: 24px; margin: 6px 0; }
+    .demo-step:last-child .step-line { display: none; }
+    .demo-step-body { padding: 0 0 32px; padding-top: 7px; }
+    .demo-step-body h4 { font-size: 16px; font-weight: 700; margin-bottom: 5px; }
+    .demo-step-body p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+    .demo-step-body code {
+      display: inline-block; background: rgba(124,58,237,.15); color: #c4b5fd;
+      border-radius: 5px; padding: 1px 7px; font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; margin-top: 8px; border: 1px solid rgba(124,58,237,.2);
+    }
+
+    /* ── Stats ── */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
+    .stat-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 28px 24px; text-align: center; transition: border-color .2s;
+    }
+    .stat-card:hover { border-color: var(--border-h); }
+    .stat-num {
+      font-size: 42px; font-weight: 900; letter-spacing: -2px; line-height: 1;
+      background: linear-gradient(135deg, #a855f7, #3b82f6);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .stat-label { font-size: 13px; color: var(--muted); margin-top: 8px; }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border); padding: 48px 0;
+      text-align: center; color: var(--muted); font-size: 13.5px;
+    }
+    .footer-tech { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 18px; }
+    .footer-badge {
+      padding: 4px 12px; border-radius: 6px; font-size: 11.5px; font-weight: 600;
+      background: var(--card); border: 1px solid var(--border); color: var(--muted);
+    }
+
+    /* ── Glow blobs ── */
+    .blob {
+      position: absolute; border-radius: 50%; filter: blur(80px);
+      pointer-events: none; opacity: .45;
+    }
+    .blob-purple { background: #7c3aed; width: 400px; height: 400px; }
+    .blob-blue   { background: #3b82f6; width: 300px; height: 300px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .trace-entry { grid-template-columns: 1fr 1fr; font-size: 11px; }
+      .te-dur { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Nav ── -->
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo">Enterprise<span>MEA</span></div>
+    <div class="nav-links">
+      <a href="#agents">Agents</a>
+      <a href="#tools">Tools</a>
+      <a href="#memory">Memory</a>
+      <a href="#demo">Demo</a>
+    </div>
+    <a href="#demo" class="nav-cta">See Demo</a>
+  </div>
+</nav>
+
+<!-- ── Hero ── -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="container" style="position:relative; z-index:1;">
+    <div class="hero-badge">
+      <span class="badge badge-purple">🏆 Composio Hackathon 2025</span>
+    </div>
+    <h1>
+      The Autonomous<br>
+      <span class="gradient-text">Enterprise AI Agent</span><br>
+      That Never Forgets
+    </h1>
+    <p class="hero-sub">
+      Multi-agent system that researches, validates, remembers across sessions,
+      and executes work across five business apps — all from one natural language prompt.
+    </p>
+    <div class="hero-btns">
+      <a href="#demo" class="btn-primary">▶ Watch Demo</a>
+      <a href="https://github.com/shanmukhsain/enterprise-memory-execution-agent" class="btn-ghost" target="_blank">⭐ View on GitHub</a>
+    </div>
+
+    <!-- Workflow flow diagram -->
+    <div class="hero-flow">
+      <div class="flow-label">Full pipeline — triggered by one prompt</div>
+      <div class="flow-prompt">"Research MCP frameworks for enterprise adoption and create an execution plan."</div>
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:center;">
+        <div class="flow-step step-plan">🗺️ Planner</div>
+        <span style="color:var(--subtle)">→</span>
+        <div class="flow-step step-mem">🧠 Memory</div>
+        <span style="color:var(--subtle)">→</span>
+        <div class="flow-step step-res">🔬 Research</div>
+        <span style="color:var(--subtle)">→</span>
+        <div class="flow-step step-crit">⚖️ Critic</div>
+        <span style="color:var(--subtle)">→</span>
+        <div class="flow-step step-exec">⚡ Executor</div>
+      </div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-apps">
+        <span class="app-chip">📄 Notion Report</span>
+        <span class="app-chip">📋 Linear Tasks</span>
+        <span class="app-chip">🐙 GitHub Issue</span>
+        <span class="app-chip">💬 Slack Summary</span>
+        <span class="app-chip">📧 Gmail Email</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Problem ── -->
+<section style="padding-top: 0;">
+  <div class="container">
+    <hr class="divider" style="margin-bottom:80px;">
+    <div class="section-header">
+      <div class="section-label">The Problem</div>
+      <h2 class="section-title">Enterprise AI is stuck in chat mode</h2>
+      <p class="section-sub">Today's AI tools reason well but fail on the three things enterprises actually need.</p>
+    </div>
+    <div class="problem-grid">
+      <div class="problem-card">
+        <div class="problem-icon">🔇</div>
+        <h3>No Memory</h3>
+        <p>Every session starts from zero. Research done last week, decisions made last month — the AI has no idea. Teams re-explain context endlessly.</p>
+      </div>
+      <div class="problem-card">
+        <div class="problem-icon">🪨</div>
+        <h3>No Execution</h3>
+        <p>AI produces great analysis but nothing happens. Reports don't get written. Tickets don't get filed. Slack doesn't get notified. Humans do all the follow-through.</p>
+      </div>
+      <div class="problem-card">
+        <div class="problem-icon">🔍</div>
+        <h3>No Validation</h3>
+        <p>AI output goes straight to the user with no quality gate. There's no mechanism to catch low-quality research before it drives real decisions.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Stats ── -->
+<section style="padding: 64px 0;">
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-num">5</div>
+        <div class="stat-label">Specialised Agents</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">5</div>
+        <div class="stat-label">App Integrations</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">17</div>
+        <div class="stat-label">Traced Actions per Run</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">41</div>
+        <div class="stat-label">Tests Passing</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">&lt;10s</div>
+        <div class="stat-label">End-to-End Runtime</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Agents ── -->
+<section id="agents" style="background: var(--surface);">
+  <div class="container">
+    <div class="section-header center">
+      <div class="section-label">Architecture</div>
+      <h2 class="section-title">Five specialised agents.<br>One coordinated system.</h2>
+      <p class="section-sub">Each agent has a single responsibility, a defined contract, and a full trace log.</p>
+    </div>
+    <div class="agents-grid">
+      <div class="agent-card">
+        <div class="agent-icon">🗺️</div>
+        <h3>Planner Agent</h3>
+        <p>Decomposes a natural language prompt into an ordered, typed execution plan — assigning each step to the right downstream agent.</p>
+        <span class="badge badge-amber">LLM-powered</span>
+      </div>
+      <div class="agent-card">
+        <div class="agent-icon">🔬</div>
+        <h3>Research Agent</h3>
+        <p>Synthesises a comprehensive structured analysis. Accepts prior memory context and critic feedback for targeted retry passes.</p>
+        <span class="badge badge-blue">LLM-powered</span>
+      </div>
+      <div class="agent-card">
+        <div class="agent-icon">⚖️</div>
+        <h3>Critic Agent</h3>
+        <p>Reviews research quality, scores confidence 0–100, identifies weaknesses, and triggers a retry loop when the bar isn't met.</p>
+        <span class="badge badge-purple">Quality gate</span>
+      </div>
+      <div class="agent-card">
+        <div class="agent-icon">🧠</div>
+        <h3>Memory Agent</h3>
+        <p>Stores findings in ChromaDB and versioned SQLite knowledge records via XTrace. Retrieves semantically relevant context on future runs.</p>
+        <span class="badge badge-cyan">Persistent</span>
+      </div>
+      <div class="agent-card">
+        <div class="agent-icon">⚡</div>
+        <h3>Execution Agent</h3>
+        <p>Fires Composio actions across five apps with retry logic and exponential backoff. Every call is timed and logged to the audit trail.</p>
+        <span class="badge badge-green">5 apps</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Critic section ── -->
+<section id="critic" class="critic-section">
+  <div class="container">
+    <div class="critic-inner">
+      <div class="score-display">
+        <div style="font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:20px;">Research Quality Score</div>
+        <div class="score-ring">
+          <div class="score-value">88</div>
+        </div>
+        <div class="score-label">HIGH QUALITY · APPROVED ✓</div>
+        <div class="score-meta">
+          <div class="score-item">
+            <div class="score-item-label">Strengths</div>
+            <div class="score-item-val val-green">4 found</div>
+          </div>
+          <div class="score-item">
+            <div class="score-item-label">Weaknesses</div>
+            <div class="score-item-val val-blue">3 flagged</div>
+          </div>
+          <div class="score-item">
+            <div class="score-item-label">Validity</div>
+            <div class="score-item-val val-green">Valid</div>
+          </div>
+          <div class="score-item">
+            <div class="score-item-label">Retry</div>
+            <div class="score-item-val val-green">Not needed</div>
+          </div>
+        </div>
+      </div>
+      <div class="critic-text">
+        <div class="section-label">Critic Agent</div>
+        <h2>AI that validates<br>its own work</h2>
+        <p>After every research pass, the Critic Agent reviews quality across five dimensions: completeness, accuracy, enterprise relevance, actionability, and balance.</p>
+        <p>If the confidence score falls below 70, the orchestrator automatically triggers a research retry — passing the critic's specific improvement suggestions back to the Research Agent.</p>
+        <div class="retry-box">
+          <div class="retry-box-title">🔁 Automatic Retry Loop</div>
+          <p>Research → Critic (score &lt; 70) → Research again with feedback → Critic re-scores → Proceed only when approved.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Apps ── -->
+<section id="apps">
+  <div class="container">
+    <div class="section-header center">
+      <div class="section-label">Composio Integrations</div>
+      <h2 class="section-title">Five apps. One workflow.</h2>
+      <p class="section-sub">Every run autonomously creates deliverables across your entire enterprise toolchain — no manual steps.</p>
+    </div>
+    <div class="apps-grid">
+      <div class="app-card">
+        <div class="app-logo">📄</div>
+        <h3>Notion</h3>
+        <p>Research report database page</p>
+        <div class="app-what">Full markdown report</div>
+      </div>
+      <div class="app-card">
+        <div class="app-logo">📋</div>
+        <h3>Linear</h3>
+        <p>Engineering project management</p>
+        <div class="app-what">4 actionable issues</div>
+      </div>
+      <div class="app-card">
+        <div class="app-logo">🐙</div>
+        <h3>GitHub</h3>
+        <p>Source code & issue tracking</p>
+        <div class="app-what">Issue + next steps</div>
+      </div>
+      <div class="app-card">
+        <div class="app-logo">💬</div>
+        <h3>Slack</h3>
+        <p>Team communication</p>
+        <div class="app-what">Block Kit summary</div>
+      </div>
+      <div class="app-card">
+        <div class="app-logo">📧</div>
+        <h3>Gmail</h3>
+        <p>Stakeholder communication</p>
+        <div class="app-what">Executive email</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Tools ── -->
+<section id="tools" style="background: var(--surface);">
+  <div class="container">
+    <div class="section-header center">
+      <div class="section-label">Infrastructure Stack</div>
+      <h2 class="section-title">Built on the right tools<br>for enterprise AI</h2>
+      <p class="section-sub">Three core platforms — each solving a distinct problem in the agentic AI stack.</p>
+    </div>
+    <div class="tools-grid">
+
+      <!-- Composio -->
+      <div class="tool-card featured">
+        <div class="tool-header">
+          <div class="tool-icon-wrap tool-icon-composio">🔌</div>
+          <div class="tool-header-text">
+            <h3>Composio</h3>
+            <p>Unified execution layer for AI agents</p>
+          </div>
+        </div>
+        <div class="tool-body">
+          <p>Composio is the execution backbone of the entire system. Instead of building and maintaining direct API integrations for each app, Composio provides a single authenticated interface to 200+ business tools — including every app we use.</p>
+          <ul class="feature-list">
+            <li><span class="check">✓</span> <div><strong>One API key, five apps</strong> — Notion, Linear, GitHub, Slack, Gmail all managed through Composio's unified toolset</div></li>
+            <li><span class="check">✓</span> <div><strong>Managed authentication</strong> — OAuth flows, token refresh, and credential storage handled automatically</div></li>
+            <li><span class="check">✓</span> <div><strong>Dry-run simulation</strong> — realistic mock responses when credentials aren't available, preserving the full trace format</div></li>
+            <li><span class="check">✓</span> <div><strong>Retry-safe</strong> — idempotent action design means our exponential backoff wrapper works seamlessly</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- XTrace -->
+      <div class="tool-card">
+        <div class="tool-header">
+          <div class="tool-icon-wrap tool-icon-xtrace">📡</div>
+          <div class="tool-header-text">
+            <h3>XTrace</h3>
+            <p>Memory infrastructure for AI agents</p>
+          </div>
+        </div>
+        <div class="tool-body">
+          <p>XTrace is the memory infrastructure layer that sits between AI agents and storage systems. It solves the hardest problem in agentic AI: making agent actions, decisions, and findings durable, queryable, and retrievable across sessions.</p>
+          <ul class="feature-list">
+            <li><span class="check">✓</span> <div><strong>Agent ↔ storage bridge</strong> — decouples agents from the underlying storage technology (vector, SQL, or both)</div></li>
+            <li><span class="check">✓</span> <div><strong>Persistent context retrieval</strong> — semantic similarity search means the agent recalls relevant prior work automatically, without explicit query construction</div></li>
+            <li><span class="check">✓</span> <div><strong>Execution tracing</strong> — every action is captured with run ID, agent, input, output, status, and duration for full observability</div></li>
+            <li><span class="check">✓</span> <div><strong>Cross-session continuity</strong> — knowledge accumulates and is versioned, enabling agents to build on previous research instead of starting over</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- butterbase -->
+      <div class="tool-card">
+        <div class="tool-header">
+          <div class="tool-icon-wrap tool-icon-butter">🧈</div>
+          <div class="tool-header-text">
+            <h3>butterbase</h3>
+            <p>Open-source AI-native backend platform</p>
+          </div>
+        </div>
+        <div class="tool-body">
+          <p>butterbase is an open-source backend platform built for the AI era. It combines everything an agentic app needs — Postgres, auth, storage, serverless functions, and first-class RAG and MCP support — into one integrated system that works natively with AI agents.</p>
+          <ul class="feature-list">
+            <li><span class="check">✓</span> <div><strong>Postgres + RAG</strong> — structured data and vector search in one platform, used for run history and semantic memory</div></li>
+            <li><span class="check">✓</span> <div><strong>Durable actors</strong> — long-running agent sessions with persistent state that survives restarts and failures</div></li>
+            <li><span class="check">✓</span> <div><strong>MCP integration</strong> — native support for the Model Context Protocol means butterbase can be exposed directly as an MCP server for any AI agent</div></li>
+            <li><span class="check">✓</span> <div><strong>Serverless functions</strong> — event-driven triggers that fire when agents produce outputs, enabling downstream automation without polling</div></li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── Memory ── -->
+<section id="memory">
+  <div class="container">
+    <div class="memory-inner">
+      <div class="memory-text">
+        <div class="section-label">Persistent Memory</div>
+        <h2>Remembers.<br>Recalls.<br>Compounds.</h2>
+        <p>The Memory Agent maintains two parallel stores — a semantic vector store for similarity-based recall and a structured SQLite store with versioned knowledge records for precise querying.</p>
+        <p>On every run, the agent retrieves the most relevant prior context before researching. On subsequent runs about the same topic, it builds on its previous work rather than starting over. Knowledge compounds.</p>
+        <div class="versioning-demo">
+          <h4>Versioned Knowledge Records</h4>
+          <div class="version-row">
+            <span class="v-run">Run 1 — MCP Frameworks</span>
+            <span class="badge badge-blue">v1</span>
+            <span class="v-conf">82%</span>
+          </div>
+          <div class="version-row">
+            <span class="v-run">Run 2 — MCP Security</span>
+            <span class="badge badge-blue">v2</span>
+            <span class="v-conf">88%</span>
+          </div>
+          <div class="version-row">
+            <span class="v-run">Run 3 — MCP Compliance</span>
+            <span class="badge badge-purple">v3</span>
+            <span class="v-conf">94%</span>
+          </div>
+        </div>
+      </div>
+      <div class="memory-layers">
+        <div class="memory-layer">
+          <div class="memory-layer-icon ml-vector">🔮</div>
+          <div class="memory-layer-body">
+            <h4>Vector Store (ChromaDB)</h4>
+            <p>Research summaries and key insights stored as embeddings. Queried by cosine similarity — surfaces the most semantically relevant prior context for each new run.</p>
+          </div>
+        </div>
+        <div class="memory-layer">
+          <div class="memory-layer-icon ml-sql">🗄️</div>
+          <div class="memory-layer-body">
+            <h4>Knowledge Records (SQLite)</h4>
+            <p>Structured records with topic, summary, recommendations, sources, critic confidence score, and version number. Supports exact-match and keyword search alongside vector similarity.</p>
+          </div>
+        </div>
+        <div class="memory-layer">
+          <div class="memory-layer-icon ml-trace">📡</div>
+          <div class="memory-layer-body">
+            <h4>Execution Trace (XTrace layer)</h4>
+            <p>Every agent action — with input, output, duration, and status — persisted to JSONL and a relational execution_logs table. Full audit trail for compliance and debugging.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Trace window ── -->
+<section class="trace-section">
+  <div class="container">
+    <div class="section-header center">
+      <div class="section-label">Observability</div>
+      <h2 class="section-title">Full execution trace.<br>Every action. Every agent.</h2>
+      <p class="section-sub">17 traced actions per run — stored to JSONL and SQLite with millisecond timing.</p>
+    </div>
+    <div class="trace-window">
+      <div class="trace-titlebar">
+        <div class="dot dot-red"></div>
+        <div class="dot dot-yellow"></div>
+        <div class="dot dot-green"></div>
+        <span class="trace-titlebar-name">execution_traces.jsonl</span>
+      </div>
+      <div class="trace-body">
+        <div class="trace-entry">
+          <span class="te-agent">PlannerAgent</span>
+          <span class="te-action">decompose_request</span>
+          <span class="te-app">internal</span>
+          <span class="te-status-ok">✓ success <span class="te-dur">4ms</span></span>
+        </div>
+        <div class="trace-entry">
+          <span class="te-agent">MemoryAgent</span>
+          <span class="te-action">retrieve_context</span>
+          <span class="te-app">vector_store</span>
+          <span class="te-status-ok">✓ success <span class="te-dur">12ms</span></span>
+        </div>
+        <div class="trace-entry">
+          <span class="te-agent">ResearchAgent</span>
+          <span class="te-action">synthesize_topic</span>
+          <span class="te-app">internal</span>
+          <span class="te-status-ok">✓ success <span class="te-dur">2841ms</span></span>
+        </div>
+        <div class="trace-entry">
+          <span class="te-agent">CriticAgent</span>
+          <span class="te-action">validate_research</span>
+          <span class="te-app">internal</span>
+          <span class="te-status-ok">✓ success <span class="te-dur">892ms</span></span>
+        </div>
+        <div class="trace-entry">
+          <span class="te-agent">MemoryAgent</span>
+          <span class="te-action">store_knowledge_record</span>
+          <span class="te-app">sqlite</span>
+          <span class="te-status-ok">✓ success <span class="te-dur">8ms</span></span>
+        </div>
+        <div class="trace-entry">
+          <span class="te-agent">ExecutionAgent</span>
+          <span class="te-action">create_notion_report</span>
+          <span class="te-app">notion</span>
+          <span class="te-status-sim">◉ simulated <span class="te-dur">14ms</span></span>
+        </div>
+        <div class="trace-entry">
+          <span class="te-agent">ExecutionAgent</span>
+          <span class="te-action">create_github_issue</span>
+          <span class="te-app">github</span>
+          <span class="te-status-sim">◉ simulated <span class="te-dur">11ms</span></span>
+        </div>
+        <div class="trace-entry">
+          <span class="te-agent">ExecutionAgent</span>
+          <span class="te-action">post_slack_summary</span>
+          <span class="te-app">slack</span>
+          <span class="te-status-sim">◉ simulated <span class="te-dur">9ms</span></span>
+        </div>
+        <div class="trace-entry">
+          <span class="te-agent">ExecutionAgent</span>
+          <span class="te-action">send_gmail_summary</span>
+          <span class="te-app">gmail</span>
+          <span class="te-status-sim">◉ simulated <span class="te-dur">8ms</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Demo ── -->
+<section id="demo">
+  <div class="container">
+    <div class="section-header center">
+      <div class="section-label">Demo Flow</div>
+      <h2 class="section-title">From prompt to<br>five deliverables in 10 seconds</h2>
+      <p class="section-sub">Every step is autonomous. No manual clicking. No copy-pasting. No context-switching.</p>
+    </div>
+    <div class="demo-steps">
+      <div class="demo-step">
+        <div class="demo-step-left">
+          <div class="step-num">1</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="demo-step-body">
+          <h4>Submit a research prompt</h4>
+          <p>POST a single JSON request to the API — or use the Streamlit dashboard. Set <code>dry_run: true</code> to simulate, or <code>false</code> to execute for real.</p>
+        </div>
+      </div>
+      <div class="demo-step">
+        <div class="demo-step-left">
+          <div class="step-num">2</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="demo-step-body">
+          <h4>Planner decomposes the request</h4>
+          <p>PlannerAgent calls the LLM and returns a structured 6-step execution plan with typed agent assignments — the blueprint for the entire pipeline.</p>
+        </div>
+      </div>
+      <div class="demo-step">
+        <div class="demo-step-left">
+          <div class="step-num">3</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="demo-step-body">
+          <h4>Memory retrieves prior context</h4>
+          <p>MemoryAgent queries ChromaDB by semantic similarity. If this topic has been researched before, the 3 most relevant documents surface automatically — building on prior work.</p>
+        </div>
+      </div>
+      <div class="demo-step">
+        <div class="demo-step-left">
+          <div class="step-num">4</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="demo-step-body">
+          <h4>Research Agent synthesises findings</h4>
+          <p>A comprehensive structured analysis is generated — including executive summary, comparison tables, adoption challenges, recommendations, and 4 actionable Linear tasks.</p>
+        </div>
+      </div>
+      <div class="demo-step">
+        <div class="demo-step-left">
+          <div class="step-num">5</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="demo-step-body">
+          <h4>Critic Agent validates quality</h4>
+          <p>CriticAgent scores the research 0–100. If confidence falls below 70, the system automatically retries — passing the critic's specific improvement suggestions back as feedback to the Research Agent.</p>
+        </div>
+      </div>
+      <div class="demo-step">
+        <div class="demo-step-left">
+          <div class="step-num">6</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="demo-step-body">
+          <h4>Memory stores findings</h4>
+          <p>Research summary and key insights are stored as vector embeddings in ChromaDB, and as a versioned knowledge record in SQLite via the XTrace memory layer — with the critic confidence score attached.</p>
+        </div>
+      </div>
+      <div class="demo-step">
+        <div class="demo-step-left">
+          <div class="step-num">7</div>
+        </div>
+        <div class="demo-step-body">
+          <h4>Execution Agent fires five Composio actions</h4>
+          <p>In parallel: a Notion page is created, 4 Linear issues are filed, a GitHub issue is opened, a Block Kit Slack message is posted, and a stakeholder Gmail is sent — all with retry logic and full trace logging. Total time: under 10 seconds.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ── -->
+<section style="padding: 80px 0; background: var(--surface); text-align: center;">
+  <div class="container">
+    <div style="max-width:600px; margin: 0 auto;">
+      <div class="section-label" style="justify-content:center; display:flex; margin-bottom:16px;">Get Started</div>
+      <h2 style="font-size: clamp(28px,4vw,44px); font-weight:800; letter-spacing:-1px; margin-bottom:16px;">
+        Run it in 60 seconds
+      </h2>
+      <p style="color:var(--muted); font-size:16px; margin-bottom:32px;">
+        Clone the repo, copy <code style="background:rgba(255,255,255,.07); padding:2px 8px; border-radius:5px; font-family:'JetBrains Mono',monospace; font-size:13px;">.env.example</code>, and start the server. No credentials required for dry-run mode.
+      </p>
+      <div style="background:#06060f; border:1px solid var(--border); border-radius:var(--radius); padding:22px 24px; text-align:left; margin-bottom:28px; font-family:'JetBrains Mono',monospace; font-size:13px; line-height:2;">
+        <span style="color:var(--subtle)">$</span> <span style="color:#6ee7b7">git clone</span> <span style="color:var(--muted)">https://github.com/shanmukhsain/enterprise-memory-execution-agent</span><br>
+        <span style="color:var(--subtle)">$</span> <span style="color:#6ee7b7">pip install</span> <span style="color:var(--muted)">-r requirements.txt</span><br>
+        <span style="color:var(--subtle)">$</span> <span style="color:#6ee7b7">cp</span> <span style="color:var(--muted)">.env.example .env</span><br>
+        <span style="color:var(--subtle)">$</span> <span style="color:#6ee7b7">uvicorn</span> <span style="color:var(--muted)">app.main:app --reload</span>
+      </div>
+      <div class="hero-btns">
+        <a href="https://github.com/shanmukhsain/enterprise-memory-execution-agent" class="btn-primary" target="_blank">⭐ GitHub Repo</a>
+        <a href="http://localhost:8000/docs" class="btn-ghost" target="_blank">📖 API Docs</a>
+        <a href="http://localhost:8501" class="btn-ghost" target="_blank">📊 Dashboard</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ── -->
+<footer>
+  <div class="container">
+    <div style="font-weight:700; font-size:16px; margin-bottom:8px;">Enterprise Memory Execution Agent</div>
+    <div>Built for the Composio Hackathon 2025 · <a href="https://composio.dev" style="color:var(--purple-l);">composio.dev</a></div>
+    <div class="footer-tech">
+      <span class="footer-badge">Python</span>
+      <span class="footer-badge">FastAPI</span>
+      <span class="footer-badge">Composio</span>
+      <span class="footer-badge">XTrace</span>
+      <span class="footer-badge">butterbase</span>
+      <span class="footer-badge">ChromaDB</span>
+      <span class="footer-badge">SQLite</span>
+      <span class="footer-badge">Streamlit</span>
+      <span class="footer-badge">Claude Sonnet</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Smooth active nav link highlighting
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.nav-links a');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        navLinks.forEach(l => l.style.color = '');
+        const active = document.querySelector(`.nav-links a[href="#${e.target.id}"]`);
+        if (active) active.style.color = '#a855f7';
+      }
+    });
+  }, { threshold: 0.4 });
+  sections.forEach(s => observer.observe(s));
+
+  // Animate stat numbers on scroll
+  const stats = document.querySelectorAll('.stat-num');
+  const statsObserver = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.style.opacity = '1';
+        e.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, { threshold: 0.5 });
+  stats.forEach(s => {
+    s.style.opacity = '0';
+    s.style.transform = 'translateY(12px)';
+    s.style.transition = 'opacity .5s ease, transform .5s ease';
+    statsObserver.observe(s);
+  });
+</script>
+
+</body>
+</html>

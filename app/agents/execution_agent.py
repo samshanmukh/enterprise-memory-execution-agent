@@ -1,0 +1,268 @@
+from __future__ import annotations
+
+import logging
+import time
+from typing import Any
+
+from app.config import get_settings
+from app.logs.execution_trace import TraceLogger
+from app.tools.composio_client import ComposioClient
+from app.tools.github_tools import create_github_issue
+from app.tools.gmail_tools import build_email_body, send_gmail_summary
+from app.tools.linear_tools import create_linear_issues_bulk
+from app.tools.notion_tools import create_notion_page
+from app.tools.slack_tools import build_research_summary_blocks, post_slack_message
+
+logger = logging.getLogger(__name__)
+
+
+class ExecutionAgent:
+    """Orchestrates Composio-backed tool calls with retry and failure recovery."""
+
+    def __init__(self, trace: TraceLogger, dry_run: bool | None = None):
+        self.trace = trace
+        settings = get_settings()
+        self.dry_run = dry_run if dry_run is not None else settings.dry_run
+        self.max_retries = settings.max_retries
+        self._client = ComposioClient(dry_run=self.dry_run)
+
+    # ── Retry wrapper ─────────────────────────────────────────────────────────
+
+    def _execute_with_retry(
+        self, fn: Any, action_label: str, **kwargs: Any
+    ) -> tuple[dict[str, Any], int]:
+        """Run fn(**kwargs) with exponential backoff. Returns (result, attempts)."""
+        last_result: dict[str, Any] = {}
+        for attempt in range(1, self.max_retries + 1):
+            try:
+                result = fn(**kwargs)
+                if result.get("success"):
+                    return result, attempt
+                last_result = result
+                if attempt < self.max_retries and not self.dry_run:
+                    delay = 2 ** (attempt - 1)
+                    logger.warning(
+                        "%s failed (attempt %d/%d) — retrying in %ds",
+                        action_label, attempt, self.max_retries, delay,
+                    )
+                    time.sleep(delay)
+            except Exception as exc:
+                logger.error("%s exception on attempt %d: %s", action_label, attempt, exc)
+                last_result = {"success": False, "error": str(exc)}
+                if attempt < self.max_retries and not self.dry_run:
+                    time.sleep(2 ** (attempt - 1))
+        return last_result or {"success": False, "error": "max retries exceeded"}, self.max_retries
+
+    # ── Notion ────────────────────────────────────────────────────────────────
+
+    def create_notion_report(self, research: dict[str, Any]) -> dict[str, Any]:
+        topic = research.get("topic", "Research Report")
+        summary = research.get("summary", "No summary generated.")
+        title = f"Research Report: {topic}"
+        start = time.perf_counter()
+
+        result, attempts = self._execute_with_retry(
+            create_notion_page,
+            "NOTION_CREATE_PAGE",
+            title=title,
+            content=summary,
+            client=self._client,
+        )
+        duration_ms = int((time.perf_counter() - start) * 1000)
+
+        self.trace.log(
+            agent_name="ExecutionAgent",
+            action_type="create_notion_report",
+            target_app="notion",
+            input_data={"title": title, "content_length": len(summary)},
+            output_data=result.get("data"),
+            status="simulated" if result.get("simulated") else ("success" if result.get("success") else "error"),
+            duration_ms=duration_ms,
+        )
+        result["attempts"] = attempts
+        return result
+
+    # ── Linear ────────────────────────────────────────────────────────────────
+
+    def create_linear_tasks(self, research: dict[str, Any]) -> list[dict[str, Any]]:
+        tasks = research.get("linear_tasks", [])
+        if not tasks:
+            tasks = [
+                {"title": f"Action: {ins[:60]}", "description": ins}
+                for ins in research.get("key_insights", [])[:4]
+            ]
+
+        start = time.perf_counter()
+        results = create_linear_issues_bulk(tasks=tasks, client=self._client)
+        duration_ms = int((time.perf_counter() - start) * 1000)
+
+        self.trace.log(
+            agent_name="ExecutionAgent",
+            action_type="create_linear_tasks",
+            target_app="linear",
+            input_data={"tasks": [t.get("title") for t in tasks]},
+            output_data=[r.get("data") for r in results],
+            status="simulated" if any(r.get("simulated") for r in results) else "success",
+            duration_ms=duration_ms,
+        )
+        return results
+
+    # ── GitHub ────────────────────────────────────────────────────────────────
+
+    def create_github_issue(self, research: dict[str, Any]) -> dict[str, Any]:
+        topic = research.get("topic", "Research Initiative")
+        insights = research.get("key_insights", [])
+        body = (
+            f"## Research: {topic}\n\n"
+            "This issue tracks enterprise adoption research generated by the "
+            "Enterprise Memory Execution Agent.\n\n"
+            "### Key Findings\n"
+            + "\n".join(f"- {i}" for i in insights)
+            + "\n\n### Next Steps\n"
+            + "\n".join(
+                f"- [ ] {t.get('title', '')}"
+                for t in research.get("linear_tasks", [])[:4]
+            )
+            + "\n\n---\n_Auto-generated via Composio_"
+        )
+
+        start = time.perf_counter()
+        result, attempts = self._execute_with_retry(
+            create_github_issue,
+            "GITHUB_CREATE_AN_ISSUE",
+            title=f"[Research] {topic}",
+            body=body,
+            labels=["research", "ai", "enterprise"],
+            client=self._client,
+        )
+        duration_ms = int((time.perf_counter() - start) * 1000)
+
+        self.trace.log(
+            agent_name="ExecutionAgent",
+            action_type="create_github_issue",
+            target_app="github",
+            input_data={"title": f"[Research] {topic}"},
+            output_data=result.get("data"),
+            status="simulated" if result.get("simulated") else ("success" if result.get("success") else "error"),
+            duration_ms=duration_ms,
+        )
+        result["attempts"] = attempts
+        return result
+
+    # ── Slack ─────────────────────────────────────────────────────────────────
+
+    def post_slack_summary(
+        self,
+        research: dict[str, Any],
+        notion_result: dict[str, Any] | None = None,
+        github_result: dict[str, Any] | None = None,
+        linear_results: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        topic = research.get("topic", "Research Report")
+        insights = research.get("key_insights", [])
+        notion_url = (notion_result or {}).get("data", {}).get("url", "")
+        github_url = (github_result or {}).get("data", {}).get("html_url", "")
+        linear_url = (
+            ((linear_results or [{}])[0]).get("data", {}).get("url", "")
+            if linear_results else ""
+        )
+
+        blocks = build_research_summary_blocks(
+            topic=topic, insights=insights,
+            notion_url=notion_url, github_url=github_url, linear_url=linear_url,
+        )
+        fallback = f"*Research Complete: {topic}*\n" + "\n".join(f"• {i}" for i in insights[:3])
+
+        start = time.perf_counter()
+        result, attempts = self._execute_with_retry(
+            post_slack_message,
+            "SLACK_SEND_MESSAGE",
+            text=fallback, blocks=blocks, client=self._client,
+        )
+        duration_ms = int((time.perf_counter() - start) * 1000)
+
+        self.trace.log(
+            agent_name="ExecutionAgent",
+            action_type="post_slack_summary",
+            target_app="slack",
+            input_data={"topic": topic, "insights_count": len(insights)},
+            output_data=result.get("data"),
+            status="simulated" if result.get("simulated") else ("success" if result.get("success") else "error"),
+            duration_ms=duration_ms,
+        )
+        result["attempts"] = attempts
+        return result
+
+    # ── Gmail ─────────────────────────────────────────────────────────────────
+
+    def send_gmail_summary(
+        self,
+        research: dict[str, Any],
+        notion_result: dict[str, Any] | None = None,
+        github_result: dict[str, Any] | None = None,
+        linear_results: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        topic = research.get("topic", "Research Report")
+        insights = research.get("key_insights", [])
+        notion_url = (notion_result or {}).get("data", {}).get("url", "")
+        github_url = (github_result or {}).get("data", {}).get("html_url", "")
+        linear_url = (
+            ((linear_results or [{}])[0]).get("data", {}).get("url", "") if linear_results else ""
+        )
+
+        body = build_email_body(
+            topic=topic,
+            summary_excerpt=research.get("summary", "")[:600],
+            insights=insights,
+            notion_url=notion_url,
+            github_url=github_url,
+            linear_url=linear_url,
+        )
+
+        start = time.perf_counter()
+        result, attempts = self._execute_with_retry(
+            send_gmail_summary,
+            "GMAIL_SEND_EMAIL",
+            subject=f"[Research Summary] {topic}",
+            body=body,
+            client=self._client,
+        )
+        duration_ms = int((time.perf_counter() - start) * 1000)
+
+        self.trace.log(
+            agent_name="ExecutionAgent",
+            action_type="send_gmail_summary",
+            target_app="gmail",
+            input_data={"topic": topic, "subject": f"[Research Summary] {topic}"},
+            output_data=result.get("data"),
+            status="simulated" if result.get("simulated") else ("success" if result.get("success") else "error"),
+            duration_ms=duration_ms,
+        )
+        result["attempts"] = attempts
+        return result
+
+    # ── Convenience ───────────────────────────────────────────────────────────
+
+    def run_all(self, research: dict[str, Any]) -> dict[str, Any]:
+        notion_result = self.create_notion_report(research)
+        linear_results = self.create_linear_tasks(research)
+        github_result = self.create_github_issue(research)
+        slack_result = self.post_slack_summary(
+            research=research,
+            notion_result=notion_result,
+            github_result=github_result,
+            linear_results=linear_results,
+        )
+        gmail_result = self.send_gmail_summary(
+            research=research,
+            notion_result=notion_result,
+            github_result=github_result,
+            linear_results=linear_results,
+        )
+        return {
+            "notion": notion_result,
+            "linear": linear_results,
+            "github": github_result,
+            "slack": slack_result,
+            "gmail": gmail_result,
+        }
